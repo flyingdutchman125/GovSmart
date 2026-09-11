@@ -21,6 +21,9 @@ class ReportResponse(BaseModel):
     urgensi: str
     lat: Optional[float] = None
     long: Optional[float] = None
+    # Nama file foto bukti yang telah diupload (None jika belum ada lampiran)
+    foto_bukti: Optional[str] = None
 
     class Config:
         from_attributes = True
+

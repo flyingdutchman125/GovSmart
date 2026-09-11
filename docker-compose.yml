@@ -33,9 +33,14 @@ services:
       - MYSQL_DB=govsmart
       - SECRET_KEY=supersecretkeygovsmart2026!
       - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+    volumes:
+      # Volume persisten untuk foto bukti upload (maks 5 MB per file sesuai PRD)
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   mysql_data:
+  uploads_data:
+

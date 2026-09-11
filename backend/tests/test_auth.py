@@ -37,3 +37,30 @@ def test_login_invalid_password(client, warga_user):
         data={"username": warga_user.email, "password": "WrongPassword!"}
     )
     assert response.status_code == 401
+
+def test_register_weak_password_rejected(client):
+    """Password tanpa simbol harus ditolak dengan 422 sesuai PRD."""
+    payload = {
+        "nik_or_nip": "3524040404920004",
+        "email": "lemah.password@lamongan.go.id",
+        "password": "Password123"  # Tidak ada simbol -> lemah
+    }
+    response = client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 422
+    body = response.json()
+    assert any(
+        "simbol" in str(err).lower() or "password" in str(err).lower()
+        for err in body.get("detail", [])
+    )
+
+def test_register_strong_password_accepted(client):
+    """Password kuat (huruf besar, kecil, angka, simbol) harus berhasil dengan 201."""
+    payload = {
+        "nik_or_nip": "3524050505930005",
+        "email": "kuat.password@lamongan.go.id",
+        "password": "Kuat@Sekali99!"  # Semua syarat terpenuhi
+    }
+    response = client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 201
+    assert response.json()["role"] == "warga"
+

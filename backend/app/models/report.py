@@ -14,3 +14,5 @@ class Report(Base):
     urgensi = Column(String(50), default="normal") # normal, penting, darurat
     lat = Column(Float, nullable=True)
     long = Column(Float, nullable=True)
+    # Nama file bukti foto yang diupload (nullable, maks 5 MB, JPEG/PNG/WEBP)
+    foto_bukti = Column(String(255), nullable=True)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
@@ -6,6 +6,7 @@ from app.schemas.report import ReportCreate, ReportUpdateStatus, ReportResponse
 from app.crud.report import create_report, get_report_by_id, get_reports, update_report_status
 from app.api.deps import get_current_user, get_current_active_admin
 from app.models.user import User
+from app.core.upload import validate_and_save_upload
 
 router = APIRouter()
 
@@ -72,3 +73,37 @@ def change_report_status(
         )
 
     return update_report_status(db, report, status_baru=status_in.status, admin_id=current_admin.id)
+
+@router.post("/{report_id}/upload-foto", response_model=ReportResponse)
+def upload_foto_bukti(
+    report_id: int,
+    foto: UploadFile = File(..., description="Foto bukti kerusakan (JPEG/PNG/WEBP, maks 5 MB)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload foto bukti lampiran untuk sebuah laporan.
+    - Hanya pemilik laporan (warga yang membuat) yang boleh mengupload.
+    - Tipe file yang diizinkan: JPEG, PNG, WEBP.
+    - Ukuran maksimum: 5 MB.
+    """
+    report = get_report_by_id(db, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
+
+    # Hanya pemilik laporan yang boleh upload bukti foto
+    if report.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Hanya pemilik laporan yang dapat mengupload foto bukti."
+        )
+
+    # Validasi MIME, ekstensi, ukuran, dan simpan file
+    saved_filename = validate_and_save_upload(foto)
+
+    # Simpan nama file ke database
+    report.foto_bukti = saved_filename
+    db.commit()
+    db.refresh(report)
+
+    return report
